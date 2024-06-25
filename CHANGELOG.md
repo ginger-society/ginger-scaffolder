@@ -1,17 +1,24 @@
+## 0.5.0-nightly.0 - 2024-06-25
+chore:
+ - [fec8363858](https://github.com/ginger-society/ginger-scaffolder/commitfec8363858837d9a2c4245f0e5d4fea024039ec5) (Ginger Society Admin) chore: git ignore update
+	
 ## 0.4.0-nightly.0 - 2024-06-25
 feat:
  - [d4485a9464](https://github.com/ginger-society/ginger-scaffolder/commitd4485a94644083436894c4f57795e0105994276d) (Ginger Society Admin) feat: added releaser reference for Cargo.toml
 	
-## 0.3.0-nightly.0 - 2024-06-25
 chore:
- - [9e4b6c3fca](https://github.com/ginger-society/ginger-scaffolder/commit9e4b6c3fcadec3af157ba1fb8339ae6da26ba373) (Ginger Society Admin) chore: version bump to 0.3.0-nightly.0
+ - [6c0f4a5936](https://github.com/ginger-society/ginger-scaffolder/commit6c0f4a5936b874e384ec87ca64d4d84248fc2a6a) (Ginger Society Admin) chore: version bump to 0.4.0-nightly.0
 	
- - [39963ababc](https://github.com/ginger-society/ginger-scaffolder/commit39963ababc65fc6f0d9522d24ef7ec76e400f1e6) (Ginger Society Admin) chore: cleanup
-	
+## 0.3.0-nightly.0 - 2024-06-25
 feat:
  - [a7058509d0](https://github.com/ginger-society/ginger-scaffolder/commita7058509d0fed4ffa0e9f829914f5beefaa32fe7) (Ginger Society Admin) feat: added clap
 	
  - [4caa420609](https://github.com/ginger-society/ginger-scaffolder/commit4caa420609b067337242f2d2a3048573b6398c8c) (Ginger Society Admin) feat: added git url as arg
+	
+chore:
+ - [9e4b6c3fca](https://github.com/ginger-society/ginger-scaffolder/commit9e4b6c3fcadec3af157ba1fb8339ae6da26ba373) (Ginger Society Admin) chore: version bump to 0.3.0-nightly.0
+	
+ - [39963ababc](https://github.com/ginger-society/ginger-scaffolder/commit39963ababc65fc6f0d9522d24ef7ec76e400f1e6) (Ginger Society Admin) chore: cleanup
 	
 ## 0.2.0-nightly.0 - 2024-06-25
 chore:
