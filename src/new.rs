@@ -1,7 +1,9 @@
+use git2::Repository;
 use inquire::{
     validator::{MinLengthValidator, Validation},
     Confirm, Select, Text,
 };
+use std::{env, path::PathBuf};
 
 use serde::Serialize;
 use std::{collections::HashMap, fmt, fs, path::Path, process::exit};
@@ -158,7 +160,7 @@ pub fn new_project(repo: String) {
     ));
 
     let context = fetch_metadata_and_process(&template_path);
-    create_new_project(&context, template_path)
+    create_new_project(&context, repo)
 }
 
 fn get_root_project_folder(_context: &HashMap<String, ContextValue>) -> String {
@@ -199,6 +201,18 @@ fn write_rendered_files(files: Vec<RenderedProject>, root_folder: String) {
 }
 
 #[tokio::main]
-async fn create_new_project(context: &HashMap<String, ContextValue>, path: String) {
-    println!("Creating project now. Context is {:?}", context)
+async fn create_new_project(context: &HashMap<String, ContextValue>, repo: String) {
+    println!("Creating project now. Context is {:?}", context);
+    let home_dir = env::var("HOME").expect("Failed to get home directory");
+    let mut repo_path = PathBuf::from(home_dir);
+    repo_path.push("Documents/repos/");
+
+    // Ensure the directory exists
+    std::fs::create_dir_all(&repo_path).expect("Failed to create directories");
+
+    let url = format!("https://github.com/{}", repo);
+    let _repo = match Repository::clone(&url, repo_path) {
+        Ok(repo) => repo,
+        Err(e) => panic!("failed to clone: {}", e),
+    };
 }
