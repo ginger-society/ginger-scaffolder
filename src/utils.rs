@@ -8,12 +8,6 @@ pub struct MetaData {
     pub prompts: Vec<TemplatePrompt>,
 }
 
-impl MetaData {
-    pub fn new(version: String, prompts: Vec<TemplatePrompt>) -> MetaData {
-        MetaData { version, prompts }
-    }
-}
-
 #[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize)]
 pub struct TemplatePrompt {
     #[serde(rename = "type")]
@@ -37,36 +31,12 @@ pub struct TemplatePrompt {
     pub callbacks: Option<Vec<Callback>>,
 }
 
-impl TemplatePrompt {
-    pub fn new(r#type: String, field_key: String, prompt: String) -> TemplatePrompt {
-        TemplatePrompt {
-            r#type,
-            field_key,
-            prompt,
-            enums: None,
-            default: None,
-            is_required: None,
-            enable_path_exist_validator: None,
-            callbacks: None,
-        }
-    }
-}
-
 #[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize)]
 pub struct Callback {
     #[serde(rename = "follow_up_prompts")]
     pub follow_up_prompts: Vec<FollowupPromot>,
     #[serde(rename = "condition")]
     pub condition: String,
-}
-
-impl Callback {
-    pub fn new(follow_up_prompts: Vec<FollowupPromot>, condition: String) -> Callback {
-        Callback {
-            follow_up_prompts,
-            condition,
-        }
-    }
 }
 
 #[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize)]
@@ -88,38 +58,4 @@ pub struct FollowupPromot {
         skip_serializing_if = "Option::is_none"
     )]
     pub enable_path_exist_validator: Option<bool>,
-}
-
-impl FollowupPromot {
-    pub fn new(r#type: String, field_key: String, prompt: String) -> FollowupPromot {
-        FollowupPromot {
-            r#type,
-            field_key,
-            prompt,
-            enums: None,
-            default: None,
-            is_required: None,
-            enable_path_exist_validator: None,
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize)]
-pub struct RenderedProject {
-    #[serde(rename = "file_name")]
-    pub file_name: String,
-    #[serde(rename = "content")]
-    pub content: String,
-    #[serde(rename = "parent_dir")]
-    pub parent_dir: String,
-}
-
-impl RenderedProject {
-    pub fn new(file_name: String, content: String, parent_dir: String) -> RenderedProject {
-        RenderedProject {
-            file_name,
-            content,
-            parent_dir,
-        }
-    }
 }

@@ -4,12 +4,12 @@ use inquire::{
     Confirm, Select, Text,
 };
 use std::{env, path::PathBuf};
+use walkdir::WalkDir;
 
 use serde::Serialize;
-use std::{collections::HashMap, fmt, fs, path::Path, process::exit};
-use std::{fs::File, io::Write};
+use std::{collections::HashMap, path::Path, process::exit};
 
-use crate::utils::{self, MetaData, RenderedProject, TemplatePrompt};
+use crate::utils::{MetaData, TemplatePrompt};
 
 #[derive(Debug, Serialize)]
 enum ContextValue {
@@ -163,56 +163,42 @@ pub fn new_project(repo: String) {
     create_new_project(&context, repo)
 }
 
-fn get_root_project_folder(_context: &HashMap<String, ContextValue>) -> String {
-    match _context.get("root_dir") {
-        Some(v) => match v {
-            ContextValue::String(s) => s.to_string(),
-            _ => String::from("."),
-        },
-        None => String::from("."),
-    }
-}
-
-fn write_rendered_files(files: Vec<RenderedProject>, root_folder: String) {
-    for f in files.iter() {
-        let parent_dir_path = format!("{}{}", root_folder, f.parent_dir,);
-
-        match fs::create_dir_all(&parent_dir_path) {
-            Ok(_) => {}
-            Err(e) => {
-                println!("Unable to create directory : {:?}", e)
-            }
+fn render_repo(repo_path: PathBuf) {
+    // Iterate over every folder and file in the cloned repository
+    for entry in WalkDir::new(&repo_path).into_iter().filter_map(|e| e.ok()) {
+        let path = entry.path();
+        let relative_path = path.strip_prefix(&repo_path).unwrap();
+        if relative_path.starts_with(".git")
+            || (relative_path == Path::new("metadata.json") || relative_path == Path::new(""))
+        {
+            continue;
         }
-
-        match File::create(format!("{}{}", parent_dir_path, f.file_name)) {
-            Ok(mut file) => match file.write_all(f.content.as_bytes()) {
-                Ok(_) => println!("Written {}", f.file_name),
-                Err(_) => {
-                    println!("Failed to write {}", f.file_name);
-                    exit(1);
-                }
-            },
-            Err(_) => {
-                println!("Unable to create files , please check if the root directory you provided exist and you have the required permission to do so.");
-                exit(1);
-            }
-        }
+        println!("{:?}", relative_path);
     }
 }
 
 #[tokio::main]
 async fn create_new_project(context: &HashMap<String, ContextValue>, repo: String) {
     println!("Creating project now. Context is {:?}", context);
+
     let home_dir = env::var("HOME").expect("Failed to get home directory");
     let mut repo_path = PathBuf::from(home_dir);
     repo_path.push("Documents/repos/");
+    let repo_name = repo.split('/').last().unwrap_or("repo");
+    repo_path.push(repo_name); // Add the repo name to the path
 
     // Ensure the directory exists
     std::fs::create_dir_all(&repo_path).expect("Failed to create directories");
 
     let url = format!("https://github.com/{}", repo);
-    let _repo = match Repository::clone(&url, repo_path) {
-        Ok(repo) => repo,
-        Err(e) => panic!("failed to clone: {}", e),
+    match Repository::clone(&url, &repo_path) {
+        Ok(_) => render_repo(repo_path),
+        Err(e) => match e.code() {
+            git2::ErrorCode::Exists => render_repo(repo_path),
+            _ => {
+                println!("Unable to clone template. Exiting!");
+                exit(1)
+            }
+        },
     };
 }
