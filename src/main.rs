@@ -1,21 +1,23 @@
+use clap::Parser;
 use new::new_project;
-use std::env;
 
 mod new;
 mod utils;
 
-fn main() {
-    let args: Vec<String> = env::args().collect();
-    if args.len() != 2 {
-        eprintln!("Usage: {} <git-url>", args[0]);
-        std::process::exit(1);
-    }
+#[derive(Parser)]
+#[clap(author, version, about, long_about = None)]
+struct Args {
+    /// The GitHub repository URL
+    #[clap(value_parser)]
+    git_url: String,
+}
 
-    let git_url = &args[1];
-    if let Some((username, repo_name)) = extract_username_and_repo(git_url) {
+fn main() {
+    let args = Args::parse();
+    if let Some((username, repo_name)) = extract_username_and_repo(&args.git_url) {
         new_project(format!("{}/{}", username, repo_name));
     } else {
-        eprintln!("Invalid Git URL: {}", git_url);
+        eprintln!("Invalid Git URL: {}", args.git_url);
         std::process::exit(1);
     }
 }

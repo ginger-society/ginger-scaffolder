@@ -8,4 +8,4 @@ patch = 0
 revision = 0
 
 [settings]
-git_url_prefix = ""
+git_url_prefix = "https://github.com/ginger-society/ginger-scaffolder/commit"
