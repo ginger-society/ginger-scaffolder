@@ -162,56 +162,88 @@ pub fn new_project(repo: String) {
 }
 
 fn render_repo(repo_path: PathBuf, context: &HashMap<String, ContextValue>) {
-    let mut tera = match Tera::new(&format!("{}/**/*", repo_path.to_str().unwrap())) {
-        Ok(t) => t,
-        Err(e) => {
-            println!("Parsing error(s): {}", e);
-            ::std::process::exit(1);
-        }
-    };
+    let mut text_file_paths = Vec::new();
+    let mut binary_file_paths = Vec::new();
 
-    let root_dir = get_root_project_folder(context);
-
+    // Collect paths of all text files and binary files
     for entry in WalkDir::new(&repo_path).into_iter().filter_map(|e| e.ok()) {
         let path = entry.path();
         let relative_path = path.strip_prefix(&repo_path).unwrap();
         if relative_path.starts_with(".git")
-            || (relative_path == Path::new("metadata.json") || relative_path == Path::new(""))
+            || relative_path == Path::new("metadata.json")
+            || relative_path == Path::new("")
         {
             continue;
         }
 
         if path.is_file() {
             if is_binary(path) {
-                println!("{:?} (binary file)", relative_path);
+                binary_file_paths.push(relative_path.to_path_buf());
             } else {
-                println!("{:?} (text file)", relative_path);
-
-                let mut tera_context = Context::new();
-                for (key, value) in context.iter() {
-                    tera_context.insert(key, value);
-                }
-
-                let template_content = fs::read_to_string(path).expect("Failed to read file");
-                let rendered_content = tera
-                    .render_str(&template_content, &tera_context)
-                    .expect("Failed to render template");
-
-                let output_path = Path::new(&root_dir).join(relative_path);
-                if let Some(parent) = output_path.parent() {
-                    fs::create_dir_all(parent).expect("Failed to create directories");
-                }
-                let mut output_file = File::create(output_path).expect("Failed to create file");
-                output_file
-                    .write_all(rendered_content.as_bytes())
-                    .expect("Failed to write to file");
+                text_file_paths.push(relative_path.to_path_buf());
             }
-        } else {
-            println!("{:?} (directory)", relative_path);
+        }
+    }
+
+    let mut tera = Tera::default();
+
+    let root_dir = get_root_project_folder(context);
+
+    for text_file_path in &text_file_paths {
+        let full_path = repo_path.join(text_file_path);
+        println!("{:?} (text file)", text_file_path);
+
+        let mut tera_context = Context::new();
+        for (key, value) in context.iter() {
+            tera_context.insert(key, value);
+        }
+
+        let template_content = match fs::read_to_string(&full_path) {
+            Ok(content) => content,
+            Err(e) => {
+                println!("Failed to read file {:?}: {}", full_path, e);
+                continue;
+            }
+        };
+
+        let rendered_content = match tera.render_str(&template_content, &tera_context) {
+            Ok(content) => content,
+            Err(e) => {
+                println!("Failed to render template {:?}: {}", full_path, e);
+                continue;
+            }
+        };
+
+        let output_path = Path::new(&root_dir).join(text_file_path);
+        if let Some(parent) = output_path.parent() {
+            fs::create_dir_all(parent).expect("Failed to create directories");
+        }
+        let mut output_file = match File::create(&output_path) {
+            Ok(file) => file,
+            Err(e) => {
+                println!("Failed to create file {:?}: {}", output_path, e);
+                continue;
+            }
+        };
+        if let Err(e) = output_file.write_all(rendered_content.as_bytes()) {
+            println!("Failed to write to file {:?}: {}", output_path, e);
+        }
+    }
+
+    for binary_file_path in &binary_file_paths {
+        let full_path = repo_path.join(binary_file_path);
+        println!("{:?} (binary file)", binary_file_path);
+
+        // Copy binary file to output directory
+        let output_path = Path::new(&root_dir).join(binary_file_path);
+        if let Some(parent) = output_path.parent() {
+            fs::create_dir_all(parent).expect("Failed to create directories");
+        }
+        if let Err(e) = fs::copy(&full_path, &output_path) {
+            println!("Failed to copy binary file {:?}: {}", full_path, e);
         }
     }
 }
-
 #[tokio::main]
 async fn create_new_project(context: &HashMap<String, ContextValue>, repo: String) {
     println!("Creating project now. Context is {:?}", context);
