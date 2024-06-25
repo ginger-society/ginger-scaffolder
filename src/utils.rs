@@ -1,4 +1,17 @@
+use std::{
+    collections::HashMap,
+    fs::File,
+    io::{BufReader, Read},
+    path::Path,
+};
+
 use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Serialize)]
+pub enum ContextValue {
+    Boolean(bool),
+    String(String),
+}
 
 #[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize)]
 pub struct MetaData {
@@ -58,4 +71,27 @@ pub struct FollowupPromot {
         skip_serializing_if = "Option::is_none"
     )]
     pub enable_path_exist_validator: Option<bool>,
+}
+
+pub fn is_binary(file_path: &Path) -> bool {
+    let file = match File::open(file_path) {
+        Ok(f) => f,
+        Err(_) => return false, // If the file can't be opened, treat it as non-binary for simplicity
+    };
+    let mut reader = BufReader::new(file);
+    let mut buffer = [0; 8000];
+    match reader.read(&mut buffer) {
+        Ok(bytes_read) => buffer[..bytes_read].contains(&0),
+        Err(_) => false, // If there's an error reading the file, treat it as non-binary for simplicity
+    }
+}
+
+pub fn get_root_project_folder(_context: &HashMap<String, ContextValue>) -> String {
+    match _context.get("root_dir") {
+        Some(v) => match v {
+            ContextValue::String(s) => s.to_string(),
+            _ => String::from("."),
+        },
+        None => String::from("."),
+    }
 }

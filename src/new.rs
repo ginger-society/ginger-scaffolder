@@ -3,19 +3,18 @@ use inquire::{
     validator::{MinLengthValidator, Validation},
     Confirm, Select, Text,
 };
-use std::{env, path::PathBuf};
+use std::{
+    env,
+    fs::{self, File},
+    io::Write,
+    path::PathBuf,
+};
+use tera::{Context, Tera};
 use walkdir::WalkDir;
 
-use serde::Serialize;
 use std::{collections::HashMap, path::Path, process::exit};
 
-use crate::utils::{MetaData, TemplatePrompt};
-
-#[derive(Debug, Serialize)]
-enum ContextValue {
-    Boolean(bool),
-    String(String),
-}
+use crate::utils::{get_root_project_folder, is_binary, ContextValue, MetaData, TemplatePrompt};
 
 fn ask_questions(
     questions: Vec<TemplatePrompt>,
@@ -154,17 +153,25 @@ async fn fetch_metadata_and_process(path: &String) -> HashMap<String, ContextVal
 }
 
 pub fn new_project(repo: String) {
-    let template_path = String::from(format!(
+    let template_path = format!(
         "https://raw.githubusercontent.com/{}/main/metadata.json",
         repo
-    ));
-
+    );
     let context = fetch_metadata_and_process(&template_path);
-    create_new_project(&context, repo)
+    create_new_project(&context, repo);
 }
 
-fn render_repo(repo_path: PathBuf) {
-    // Iterate over every folder and file in the cloned repository
+fn render_repo(repo_path: PathBuf, context: &HashMap<String, ContextValue>) {
+    let mut tera = match Tera::new(&format!("{}/**/*", repo_path.to_str().unwrap())) {
+        Ok(t) => t,
+        Err(e) => {
+            println!("Parsing error(s): {}", e);
+            ::std::process::exit(1);
+        }
+    };
+
+    let root_dir = get_root_project_folder(context);
+
     for entry in WalkDir::new(&repo_path).into_iter().filter_map(|e| e.ok()) {
         let path = entry.path();
         let relative_path = path.strip_prefix(&repo_path).unwrap();
@@ -173,7 +180,35 @@ fn render_repo(repo_path: PathBuf) {
         {
             continue;
         }
-        println!("{:?}", relative_path);
+
+        if path.is_file() {
+            if is_binary(path) {
+                println!("{:?} (binary file)", relative_path);
+            } else {
+                println!("{:?} (text file)", relative_path);
+
+                let mut tera_context = Context::new();
+                for (key, value) in context.iter() {
+                    tera_context.insert(key, value);
+                }
+
+                let template_content = fs::read_to_string(path).expect("Failed to read file");
+                let rendered_content = tera
+                    .render_str(&template_content, &tera_context)
+                    .expect("Failed to render template");
+
+                let output_path = Path::new(&root_dir).join(relative_path);
+                if let Some(parent) = output_path.parent() {
+                    fs::create_dir_all(parent).expect("Failed to create directories");
+                }
+                let mut output_file = File::create(output_path).expect("Failed to create file");
+                output_file
+                    .write_all(rendered_content.as_bytes())
+                    .expect("Failed to write to file");
+            }
+        } else {
+            println!("{:?} (directory)", relative_path);
+        }
     }
 }
 
@@ -192,9 +227,9 @@ async fn create_new_project(context: &HashMap<String, ContextValue>, repo: Strin
 
     let url = format!("https://github.com/{}", repo);
     match Repository::clone(&url, &repo_path) {
-        Ok(_) => render_repo(repo_path),
+        Ok(_) => render_repo(repo_path, context),
         Err(e) => match e.code() {
-            git2::ErrorCode::Exists => render_repo(repo_path),
+            git2::ErrorCode::Exists => render_repo(repo_path, context),
             _ => {
                 println!("Unable to clone template. Exiting!");
                 exit(1)

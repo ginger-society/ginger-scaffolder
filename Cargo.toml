@@ -11,5 +11,6 @@ inquire = {version = "0.6.2", features = ["date"]}
 reqwest = {version = "0.12.5", features = ["json"]}
 serde = {version = "1.0.166", features = ["derive"]}
 serde_json = {version = "1.0.100"}
+tera = "1.20.0"
 tokio = {version = "1", features = ["full"]}
 walkdir = "2.5.0"
