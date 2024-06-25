@@ -191,7 +191,7 @@ fn render_repo(repo_path: PathBuf, context: &HashMap<String, ContextValue>) {
 
     for text_file_path in &text_file_paths {
         let full_path = repo_path.join(text_file_path);
-        println!("{:?} (text file)", text_file_path);
+        println!("Creating {:?} (text file)", text_file_path);
 
         let mut tera_context = Context::new();
         for (key, value) in context.iter() {
@@ -232,7 +232,7 @@ fn render_repo(repo_path: PathBuf, context: &HashMap<String, ContextValue>) {
 
     for binary_file_path in &binary_file_paths {
         let full_path = repo_path.join(binary_file_path);
-        println!("{:?} (binary file)", binary_file_path);
+        println!("Copying : {:?} (binary file)", binary_file_path);
 
         // Copy binary file to output directory
         let output_path = Path::new(&root_dir).join(binary_file_path);
