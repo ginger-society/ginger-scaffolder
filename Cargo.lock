@@ -410,6 +410,7 @@ version = "0.1.0"
 dependencies = [
  "git2",
  "inquire",
+ "regex",
  "reqwest",
  "serde",
  "serde_json",
