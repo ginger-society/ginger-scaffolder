@@ -14,7 +14,10 @@ use walkdir::WalkDir;
 
 use std::{collections::HashMap, path::Path, process::exit};
 
-use crate::utils::{get_root_project_folder, is_binary, ContextValue, MetaData, TemplatePrompt};
+use crate::utils::{
+    extract_username_and_repo, get_root_project_folder, is_binary, ContextValue, MetaData,
+    TemplatePrompt,
+};
 
 fn ask_questions(
     questions: Vec<TemplatePrompt>,
@@ -153,12 +156,17 @@ async fn fetch_metadata_and_process(path: &String) -> HashMap<String, ContextVal
 }
 
 pub fn new_project(repo: String) {
-    let template_path = format!(
-        "https://raw.githubusercontent.com/{}/main/metadata.json",
-        repo
-    );
-    let context = fetch_metadata_and_process(&template_path);
-    create_new_project(&context, repo);
+    if let Some((username, repo_name)) = extract_username_and_repo(&repo) {
+        let template_path = format!(
+            "https://raw.githubusercontent.com/{}/{}/main/metadata.json",
+            username, repo_name
+        );
+        let context = fetch_metadata_and_process(&template_path);
+        create_new_project(&context, repo);
+    } else {
+        eprintln!("Invalid Git URL: {}", repo);
+        std::process::exit(1);
+    }
 }
 
 fn render_repo(repo_path: PathBuf, context: &HashMap<String, ContextValue>) {

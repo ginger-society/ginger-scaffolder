@@ -1,11 +1,35 @@
 use std::{
     collections::HashMap,
+    fmt,
     fs::File,
     io::{BufReader, Read},
     path::Path,
+    process::exit,
 };
 
+use inquire::Select;
 use serde::{Deserialize, Serialize};
+
+use crate::new::new_project;
+
+#[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize)]
+pub struct TemplateDetails {
+    pub description: String,
+    pub short_name: String,
+    pub url: String,
+}
+
+impl fmt::Display for TemplateDetails {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.short_name)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize)]
+pub struct RepoMetaData {
+    version: String,
+    pub templates: Vec<TemplateDetails>,
+}
 
 #[derive(Debug, Serialize)]
 pub enum ContextValue {
@@ -93,5 +117,49 @@ pub fn get_root_project_folder(_context: &HashMap<String, ContextValue>) -> Stri
             _ => String::from("."),
         },
         None => String::from("."),
+    }
+}
+
+pub fn extract_username_and_repo(git_url: &str) -> Option<(String, String)> {
+    let re = regex::Regex::new(r"^https://github.com/([^/]+)/([^/]+)$").unwrap();
+    if let Some(captures) = re.captures(git_url) {
+        let username = captures.get(1)?.as_str().to_string();
+        let repo_name = captures.get(2)?.as_str().to_string();
+        Some((username, repo_name))
+    } else {
+        None
+    }
+}
+#[tokio::main]
+pub async fn fetch_all_available_templates(url: String) {
+    let client = reqwest::Client::new();
+    let response = client
+        .get(format!(
+            "https://raw.githubusercontent.com/{}/main/__metadata__.json",
+            url
+        ))
+        .send()
+        .await
+        .unwrap();
+
+    if response.status().is_success() {
+        let meta_data: RepoMetaData = response.json().await.unwrap();
+
+        match Select::new("Please select the template?", meta_data.templates)
+            .with_page_size(10)
+            .prompt()
+        {
+            Ok(choice) => {
+                new_project(choice.url);
+            }
+            Err(err) => {
+                println!("{:?}", err);
+                println!("You cancelled :(. Existing!");
+                exit(1);
+            }
+        };
+    } else {
+        println!("Unable to get the metadata for this template");
+        exit(1)
     }
 }

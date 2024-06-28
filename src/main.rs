@@ -1,5 +1,5 @@
 use clap::Parser;
-use new::new_project;
+use utils::fetch_all_available_templates;
 
 mod new;
 mod utils;
@@ -11,24 +11,7 @@ struct Args {
     #[clap(value_parser)]
     git_url: String,
 }
-
 fn main() {
     let args = Args::parse();
-    if let Some((username, repo_name)) = extract_username_and_repo(&args.git_url) {
-        new_project(format!("{}/{}", username, repo_name));
-    } else {
-        eprintln!("Invalid Git URL: {}", args.git_url);
-        std::process::exit(1);
-    }
-}
-
-fn extract_username_and_repo(git_url: &str) -> Option<(String, String)> {
-    let re = regex::Regex::new(r"^https://github.com/([^/]+)/([^/]+)$").unwrap();
-    if let Some(captures) = re.captures(git_url) {
-        let username = captures.get(1)?.as_str().to_string();
-        let repo_name = captures.get(2)?.as_str().to_string();
-        Some((username, repo_name))
-    } else {
-        None
-    }
+    fetch_all_available_templates(args.git_url)
 }
