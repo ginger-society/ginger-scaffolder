@@ -11,6 +11,7 @@ struct Args {
     #[clap(value_parser)]
     git_url: String,
 }
+
 fn main() {
     let args = Args::parse();
     fetch_all_available_templates(args.git_url)

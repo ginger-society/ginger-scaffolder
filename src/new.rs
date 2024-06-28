@@ -136,7 +136,6 @@ fn ask_questions(
     return context_values;
 }
 
-#[tokio::main]
 async fn fetch_metadata_and_process(path: &String) -> HashMap<String, ContextValue> {
     let client = reqwest::Client::new();
     let response = client.get(path).send().await.unwrap();
@@ -155,13 +154,13 @@ async fn fetch_metadata_and_process(path: &String) -> HashMap<String, ContextVal
     }
 }
 
-pub fn new_project(repo: String) {
+pub async fn new_project(repo: String) {
     if let Some((username, repo_name)) = extract_username_and_repo(&repo) {
         let template_path = format!(
             "https://raw.githubusercontent.com/{}/{}/main/metadata.json",
             username, repo_name
         );
-        let context = fetch_metadata_and_process(&template_path);
+        let context = fetch_metadata_and_process(&template_path).await;
         create_new_project(&context, repo);
     } else {
         eprintln!("Invalid Git URL: {}", repo);
@@ -252,8 +251,7 @@ fn render_repo(repo_path: PathBuf, context: &HashMap<String, ContextValue>) {
         }
     }
 }
-#[tokio::main]
-async fn create_new_project(context: &HashMap<String, ContextValue>, repo: String) {
+fn create_new_project(context: &HashMap<String, ContextValue>, repo: String) {
     println!("Creating project now. Context is {:?}", context);
 
     let home_dir = env::var("HOME").expect("Failed to get home directory");

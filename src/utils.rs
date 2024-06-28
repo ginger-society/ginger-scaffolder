@@ -150,7 +150,7 @@ pub async fn fetch_all_available_templates(url: String) {
             .prompt()
         {
             Ok(choice) => {
-                new_project(choice.url);
+                new_project(choice.url).await;
             }
             Err(err) => {
                 println!("{:?}", err);
