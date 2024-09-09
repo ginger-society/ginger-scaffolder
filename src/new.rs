@@ -262,13 +262,12 @@ fn create_new_project(context: &HashMap<String, ContextValue>, repo: String) {
 
     // Ensure the directory exists
     std::fs::create_dir_all(&repo_path).expect("Failed to create directories");
-
-    let url = format!("https://github.com/{}", repo);
-    match Repository::clone(&url, &repo_path) {
+    match Repository::clone(&repo, &repo_path) {
         Ok(_) => render_repo(repo_path, context),
         Err(e) => match e.code() {
             git2::ErrorCode::Exists => render_repo(repo_path, context),
             _ => {
+                println!("{:?}", e);
                 println!("Unable to clone template. Exiting!");
                 exit(1)
             }

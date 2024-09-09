@@ -1,0 +1,8 @@
+dir = "."
+lang = "Rust"
+organization_id = "ginger-society"
+service_type = "Executable"
+
+[portals_refs]
+
+[services]

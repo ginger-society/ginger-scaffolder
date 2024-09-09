@@ -1,4 +1,5 @@
 [package]
+description = "scaffolding cli"
 edition = "2021"
 name = "ginger-scaffolder"
 version = "0.6.0-nightly.0"
@@ -7,7 +8,6 @@ version = "0.6.0-nightly.0"
 
 [dependencies]
 clap = {version = "4.5.7", features = ["derive"]}
-git2 = {version = "0.18.1"}
 inquire = {version = "0.6.2", features = ["date"]}
 regex = "1.10.5"
 reqwest = {version = "0.12.5", features = ["json"]}
@@ -16,3 +16,12 @@ serde_json = {version = "1.0.100"}
 tera = "1.20.0"
 tokio = {version = "1", features = ["full"]}
 walkdir = "2.5.0"
+
+[target.'cfg(all(target_arch = "x86_64", not(target_os = "linux")))'.dependencies]
+git2 = {version = "0.19.0", features = ["vendored-openssl"]}
+
+[target.'cfg(any(target_arch = "aarch64", target_os = "linux", not(target_arch = "x86_64")))'.dependencies]
+git2 = "0.19.0"
+
+[package.metadata]
+organization = "ginger-society"
