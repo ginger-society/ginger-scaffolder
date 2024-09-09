@@ -3,3 +3,4 @@ test
 Cargo.lock
 bin
 .env
+.DS_Store
