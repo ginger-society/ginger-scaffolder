@@ -1,7 +1,10 @@
-dir = "."
 lang = "Rust"
 organization_id = "ginger-society"
+dir = "."
+
+[services."@ginger-society/MetadataService"]
+stage = "https://api-staging.gingersociety.org/metadata"
+dev = "http://localhost:8081/metadata"
+stage_k8 = "http://metadata-service-api-service/metadata"
 
 [portals_refs]
-
-[services]

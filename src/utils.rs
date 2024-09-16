@@ -1,14 +1,16 @@
+use serde_json::Value;
 use std::{
     collections::HashMap,
     fmt,
     fs::File,
     io::{BufReader, Read},
-    path::Path,
+    path::{Path, PathBuf},
     process::exit,
 };
 
 use inquire::Select;
 use serde::{Deserialize, Serialize};
+use MetadataService::{apis::default_api::metadata_get_all_templates, get_configuration};
 
 use crate::new::new_project;
 
@@ -131,35 +133,98 @@ pub fn extract_username_and_repo(git_url: &str) -> Option<(String, String)> {
     }
 }
 #[tokio::main]
-pub async fn fetch_all_available_templates(url: String) {
-    let client = reqwest::Client::new();
-    let response = client
-        .get(format!(
-            "https://raw.githubusercontent.com/{}/main/__metadata__.json",
-            url
-        ))
-        .send()
-        .await
-        .unwrap();
+pub async fn fetch_all_available_templates() {
+    let home_dir = match dirs::home_dir() {
+        Some(path) => path,
+        None => {
+            println!("Failed to locate home directory. Exiting.");
+            exit(1);
+        }
+    };
+    // Construct the path to the auth.json file
+    let auth_file_path: PathBuf = [home_dir.to_str().unwrap(), ".ginger-society", "auth.json"]
+        .iter()
+        .collect();
 
-    if response.status().is_success() {
-        let meta_data: RepoMetaData = response.json().await.unwrap();
+    // Read the token from the file
+    let mut file = match File::open(&auth_file_path) {
+        Ok(f) => f,
+        Err(_) => {
+            println!("Failed to open {}. Exiting.", auth_file_path.display());
+            exit(1);
+        }
+    };
+    let mut contents = String::new();
+    if let Err(_) = file.read_to_string(&mut contents) {
+        println!("Failed to read the auth.json file. Exiting.");
+        exit(1);
+    }
 
-        match Select::new("Please select the template?", meta_data.templates)
-            .with_page_size(10)
-            .prompt()
-        {
-            Ok(choice) => {
-                new_project(choice.url).await;
+    let json: Value = match serde_json::from_str(&contents) {
+        Ok(v) => v,
+        Err(_) => {
+            println!("Failed to parse auth.json as JSON. Exiting.");
+            exit(1);
+        }
+    };
+
+    let token = match json.get("API_TOKEN").and_then(|v| v.as_str()) {
+        Some(t) => t.to_string(),
+        None => {
+            println!("API_TOKEN not found in auth.json. Exiting.");
+            exit(1);
+        }
+    };
+
+    let metadata_config = get_configuration(Some(token));
+
+    match metadata_get_all_templates(&metadata_config).await {
+        Ok(resp) => {
+            let mut template_options: Vec<TemplateOption> = Vec::new();
+
+            for template in resp {
+                let option = TemplateOption {
+                    short_name: template.short_name,
+                    description: template.description,
+                    repo_link: template.repo_link,
+                    identifier: template.identifier,
+                    id: template.id,
+                };
+                template_options.push(option);
             }
-            Err(err) => {
-                println!("{:?}", err);
-                println!("You cancelled :(. Existing!");
-                exit(1);
-            }
-        };
-    } else {
-        println!("Unable to get the metadata for this template");
-        exit(1)
+
+            match Select::new("Please select the template?", template_options).prompt() {
+                Ok(choice) => {
+                    new_project(choice.repo_link).await;
+                }
+                Err(err) => {
+                    println!("{:?}", err);
+                    println!("You cancelled :(. Existing!");
+                    exit(1);
+                }
+            };
+        }
+        Err(_) => {
+            println!("Error getting the templates")
+        }
+    }
+}
+
+#[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
+pub struct TemplateOption {
+    pub short_name: String,
+    pub description: String,
+    pub repo_link: String,
+    pub identifier: String,
+    pub id: i64,
+}
+
+impl fmt::Display for TemplateOption {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "TemplateOption {{\n  Short Name: {},\n  Description: {},\n  Identifier: {}\n}}",
+            self.short_name, self.description, self.identifier
+        )
     }
 }

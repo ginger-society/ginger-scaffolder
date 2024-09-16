@@ -4,3 +4,5 @@ Cargo.lock
 bin
 .env
 .DS_Store
+MetadataService_client
+.ginger.tmp
