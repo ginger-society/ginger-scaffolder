@@ -6,12 +6,11 @@ use inquire::{
 use std::{
     env,
     fs::{self, File},
-    io::{Read, Write},
+    io::Write,
     path::PathBuf,
 };
 use tera::{Context, Tera};
 use walkdir::WalkDir;
-use MetadataService::get_configuration;
 
 use std::{collections::HashMap, path::Path, process::exit};
 

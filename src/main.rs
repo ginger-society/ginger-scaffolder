@@ -1,4 +1,3 @@
-use clap::Parser;
 use utils::fetch_all_available_templates;
 
 mod new;
